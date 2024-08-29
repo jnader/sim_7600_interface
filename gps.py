@@ -33,21 +33,22 @@ class Sim7600Module:
                 command (str): AT command
 
         Returns:
-                bool: True if OK as response, False otherwise
+                bool: True if received OK as response, False otherwise
         """
         rec_buff = ""
         self.serial.write((command + "\r\n").encode())
-        timeout = time.time() + 1.0
+        timeout = time.time() + 3.0
         while self.serial.inWaiting() or time.time() - timeout < 0.0:
             if self.serial.inWaiting() > 0:
-                rec_buff = self.serial.read(self.serial.inWaiting())
-                print(rec_buff)
-                # break
+                try:
+                    rec_buff = self.serial.read(self.serial.inWaiting())
+                    break
+                except Exception as e:
+                    break
         if rec_buff != "":
             if "OK" not in rec_buff.decode():
                 return [False, rec_buff.decode()]
             else:
-                # print(rec_buff.decode())
                 return [True, rec_buff.decode()]
         return [False, rec_buff]
 
@@ -64,6 +65,13 @@ class Sim7600Module:
         if not self.serial:
             self.serial = serial.Serial(port=self.serial_port, baudrate=self.baud_rate)
             self.is_open = self.serial.is_open
+            self.serial.reset_input_buffer()
+            self.serial.reset_output_buffer()
+        else:
+            if self.serial.is_open:
+                print("Closing already open serial")
+                self.serial.close()
+                self.serial.open()
 
     def close(self) -> None:
         """Close serial port.
@@ -74,17 +82,21 @@ class Sim7600Module:
         if self.serial.is_open:
             self.serial.close()
 
-    def get_gps_position(self) -> Tuple[float, float]:
+    def get_gps_position(self) -> Tuple[str, str, str]:
         """Get GPS (latitude, longitude positions) by sending `AT+CGPSINFO`
 
         Returns:
             Tuple[float, float]: Tuple consisting of latitude and longitude in degrees
         """
         response = self.send_at("AT+CGPSINFO")
-        if response[0]:
-            # data = response[1].split(",")
-            # nmea_coordinates((data[0], data[2])
-            print(response[1])
+        if response[0] and "CGPSINFO" in response[1]:
+            data_str = response[1].split("+CGPSINFO: ")[1]
+            latitude_str, longitude_str = "_".join(data_str.split(",")[:2]), "_".join(
+                data_str.split(",")[2:4]
+            )
+            date_time_utc = "_".join(data_str.split(",")[4:6])
+            return (date_time_utc, latitude_str, longitude_str)
+        return ("", "", "")
 
     def get_distance_to(self, position: Tuple[float, float]) -> float:
         """Gets distance between current GPS position and some `position`
@@ -109,10 +121,7 @@ if __name__ == "__main__":
     board = Sim7600Module()
     board.open()
     if board.is_open:
-        print("Board connected and accessible")
-        for i in range(10):
-            print(i)
-            print(board.get_gps_position())
+        print(board.get_gps_position())
 
         board.close()
 
