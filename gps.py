@@ -2,6 +2,7 @@
 SIM7600 module interface.
 """
 
+from coordinates import Coordinates
 from pathlib import Path
 import serial
 import time
@@ -36,8 +37,10 @@ class Sim7600Module:
                 bool: True if received OK as response, False otherwise
         """
         rec_buff = ""
+        # self.serial.reset_output_buffer()
         self.serial.write((command + "\r\n").encode())
         timeout = time.time() + 3.0
+        # self.serial.reset_input_buffer()
         while self.serial.inWaiting() or time.time() - timeout < 0.0:
             if self.serial.inWaiting() > 0:
                 try:
@@ -82,21 +85,29 @@ class Sim7600Module:
         if self.serial.is_open:
             self.serial.close()
 
-    def get_gps_position(self) -> Tuple[str, str, str]:
+    def get_gps_position(self) -> Coordinates:
         """Get GPS (latitude, longitude positions) by sending `AT+CGPSINFO`
 
         Returns:
-            Tuple[float, float]: Tuple consisting of latitude and longitude in degrees
+            Coordinates: (time_utc, latitude, longitude)
         """
-        response = self.send_at("AT+CGPSINFO")
+        response = [False, None]
+        while not response[0]:
+            response = self.send_at("AT+CGPSINFO")
+            if response[1] and ",,,,,,,," in response[1]:
+                print("GPS not ready")
+                response = [False, None]
         if response[0] and "CGPSINFO" in response[1]:
             data_str = response[1].split("+CGPSINFO: ")[1]
-            latitude_str, longitude_str = "_".join(data_str.split(",")[:2]), "_".join(
-                data_str.split(",")[2:4]
+            data = data_str.split(",")
+            return Coordinates(
+                time_utc="_".join(data[4:6]),
+                latitude=data[0],
+                latitude_ind=data[1],
+                longitude=data[2],
+                longitude_ind=data[3],
             )
-            date_time_utc = "_".join(data_str.split(",")[4:6])
-            return (date_time_utc, latitude_str, longitude_str)
-        return ("", "", "")
+        return None
 
     def get_distance_to(self, position: Tuple[float, float]) -> float:
         """Gets distance between current GPS position and some `position`
