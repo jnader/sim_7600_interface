@@ -1,0 +1,6 @@
+wheel
+geopandas
+pyproj
+shapely
+folium
+pyserial
