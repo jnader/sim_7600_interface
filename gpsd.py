@@ -13,12 +13,7 @@ if __name__ == "__main__":
                 data: Coordinates
                 data = board.get_gps_position()
                 if data is not None:
-                    print(
-                        data.latitude,
-                        data.latitude_indicator,
-                        data.longitude,
-                        data.longitude_indicator,
-                    )
+                    print(data)
                 time.sleep(3)
 
         board.close()

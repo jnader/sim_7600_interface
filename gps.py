@@ -132,7 +132,9 @@ if __name__ == "__main__":
     board = Sim7600Module()
     board.open()
     if board.is_open:
-        print(board.get_gps_position())
+        gps_data: Coordinates
+        gps_data = board.get_gps_position()
+        print(gps_data)
 
         board.close()
 

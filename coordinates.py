@@ -12,15 +12,21 @@ class Coordinates:
     and reptojecting to different EPSG formats.
     """
 
-    time_utc: str = None # TODO: Use time.
+    time_utc: str = None  # TODO: Use time.
     latitude: float = None
     latitude_indicator: str = None
     longitude: float = None
     longitude_indicator: str = None
     crs_from = None
 
-
-    def __init__(self, time_utc: str, latitude: float, latitude_ind: str, longitude: float, longitude_ind: str):
+    def __init__(
+        self,
+        time_utc: str,
+        latitude: float,
+        latitude_ind: str,
+        longitude: float,
+        longitude_ind: str,
+    ):
         """Constructor
 
         Args:
@@ -52,5 +58,11 @@ class Coordinates:
         transformer = Transformer.from_crs(self.crs_from, crs_to)
         gps_point = Point(transformer.transform(self.latitude, self.longitude))
 
-        d = {'time_utc': [self.time_utc], 'geometry': [gps_point]}
+        d = {"time_utc": [self.time_utc], "geometry": [gps_point]}
         return gpd.GeoDataFrame(d, crs=crs_to).buffer(error)
+
+    def __str__(self):
+        """
+        Special print() function for Coordinates class
+        """
+        return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}, Long: {self.longitude}{self.longitude_indicator}"
