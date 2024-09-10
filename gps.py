@@ -7,7 +7,6 @@ from pathlib import Path
 import serial
 import time
 from typing import Tuple
-from utils import haversine
 
 
 class Sim7600Module:
@@ -147,17 +146,6 @@ class Sim7600Module:
                 longitude_ind="",
                 from_lbs=True,
             )
-
-    def get_distance_to(self, position: Tuple[float, float]) -> float:
-        """Gets distance between current GPS position and some `position`
-
-        Args:
-            position (Tuple[float, float]): Position to calculate the distance to in degrees.
-
-        Returns:
-            float: Distance from module to `position`
-        """
-        return haversine(self.get_gps_position(), position)
 
     def enable_echo(self):
         """Enables echo on the board. This will enable echoing the result of AT commands."""
