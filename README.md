@@ -1,3 +1,11 @@
+This projects is used to interface with SIM7600G-H LTE module.
+The main purpose is get the GPS position from this module and
+detect if it lies inside/outside of a GIS-zone.
+
+# Description
+Using SIM7600 LTE module, we try to use AT commands to get GPS position. If no position is fixed with standalone GPS, the position will use Location Based Services (LBS) from telecom operator.
+The project is under developement.
+
 # Install
 
 ```
@@ -39,7 +47,18 @@ if board.is_open:
 ```
 
 # Example
+- To get GPS position once in an example, use the following example:
+```
+sudo OPENBLAS_CORETYPE=ARMV8 python3 gps.py
+```
+
 - To continuously query GPS position, use the following example:
 ```
-OPENBLAS_CORETYPE=ARMV8 python3 gpsd.py
+sudo OPENBLAS_CORETYPE=ARMV8 python3 gpsd.py
 ```
+
+- To run `main.py`, you need to have the folder containing exported files in the same directory of the project.
+```
+sudo OPENBLAS_CORETYPE=ARMV8 python3 main.py
+```
+This example will currently search for `Blue_Line` folder. If not it will fail.

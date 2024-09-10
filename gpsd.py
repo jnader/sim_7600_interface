@@ -18,6 +18,5 @@ if __name__ == "__main__":
 
         board.close()
 
-    except Exception as e:
-        print(e)
+    except KeyboardInterrupt as e:
         board.close()

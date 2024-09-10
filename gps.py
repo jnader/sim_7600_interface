@@ -36,20 +36,25 @@ class Sim7600Module:
         Returns:
                 bool: True if received OK as response, False otherwise
         """
+
+        command_sliced = command.split("+")
+        pattern = ""
+        if len(command_sliced) > 1:
+            pattern = command_sliced[-1].split("=")[0]
+
         rec_buff = ""
-        # self.serial.reset_output_buffer()
         self.serial.write((command + "\r\n").encode())
         timeout = time.time() + 3.0
-        # self.serial.reset_input_buffer()
-        while self.serial.inWaiting() or time.time() - timeout < 0.0:
-            if self.serial.inWaiting() > 0:
+        while self.serial.in_waiting or time.time() - timeout < 0.0:
+            if self.serial.in_waiting > 0:
                 try:
-                    rec_buff = self.serial.read(self.serial.inWaiting())
-                    break
+                    rec_buff = self.serial.read(self.serial.in_waiting)
+                    if pattern in rec_buff.decode():
+                        break
                 except Exception as e:
-                    break
+                    print(pattern, e)
         if rec_buff != "":
-            if "OK" not in rec_buff.decode():
+            if pattern not in rec_buff.decode():
                 return [False, rec_buff.decode()]
             else:
                 return [True, rec_buff.decode()]
@@ -72,7 +77,6 @@ class Sim7600Module:
             self.serial.reset_output_buffer()
         else:
             if self.serial.is_open:
-                print("Closing already open serial")
                 self.serial.close()
                 self.serial.open()
 
@@ -92,11 +96,19 @@ class Sim7600Module:
             Coordinates: (time_utc, latitude, longitude)
         """
         response = [False, None]
-        while not response[0]:
+        counter = 0
+        while counter < 2:
             response = self.send_at("AT+CGPSINFO")
-            if response[1] and ",,,,,,,," in response[1]:
-                print("GPS not ready")
-                response = [False, None]
+            if response[0]:
+                if ",,,,,,,," in response[1]:
+                    return self.get_position_from_lbs()
+                else:
+                    break
+            counter += 1
+
+        if counter == 2:
+            return self.get_position_from_lbs()
+
         if response[0] and "CGPSINFO" in response[1]:
             data_str = response[1].split("+CGPSINFO: ")[1]
             data = data_str.split(",")
@@ -108,6 +120,32 @@ class Sim7600Module:
                 longitude_ind=data[3],
             )
         return None
+
+    def get_position_from_lbs(self) -> Coordinates:
+        """Gets position using Location-Based-Services (LBS).
+        The position tends to have less accuracy than GPS, ranging
+        from hundreds of meters to kilometers.
+
+        Returns:
+            Coordinates: Coordinates of the base station.
+        """
+        ret, response = self.send_at("AT+CLBS=4")
+        if ret and "CLBS" in response:
+            data_str = response.split("+CLBS: ")[1]
+            data = data_str.split(",")
+            time_utc = (
+                "_".join(data[-2:])
+                .replace("/", "_")
+                .replace("\r", "")
+                .replace("\n", "")
+            )
+            return Coordinates(
+                time_utc=time_utc,
+                latitude=data[1],
+                latitude_ind="N",
+                longitude=data[2],
+                longitude_ind="E",
+            )
 
     def get_distance_to(self, position: Tuple[float, float]) -> float:
         """Gets distance between current GPS position and some `position`
@@ -129,19 +167,18 @@ class Sim7600Module:
 
 
 if __name__ == "__main__":
-    board = Sim7600Module()
-    board.open()
-    if board.is_open:
-        gps_data: Coordinates
-        gps_data = board.get_gps_position()
-        print(gps_data)
+    board = None
+    try:
+        board = Sim7600Module()
+        board.open()
+        if board.is_open:
+            gps_data: Coordinates
+            gps_data = board.get_gps_position()
+            print(gps_data)
 
-        board.close()
+            board.close()
 
-    # point_1_nmea = (2508.472, 5523.562)
-    # point_2_nmea = (2505.166, 05531.262)
-    # point_1 = nmea_to_coordinates(point_1_nmea)
-    # point_2 = nmea_to_coordinates(point_2_nmea)
-
-    # print(point_1, point_2)
-    # print(haversine(point_1, point_2))
+    except KeyboardInterrupt as e:
+        if board and board.is_open:
+            print("\nClosing serial communication.")
+            board.close()
