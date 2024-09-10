@@ -7,7 +7,7 @@ from pathlib import Path
 import serial
 import time
 from typing import Tuple
-from utils import nmea_to_coordinates, haversine
+from utils import haversine
 
 
 class Sim7600Module:
@@ -142,9 +142,10 @@ class Sim7600Module:
             return Coordinates(
                 time_utc=time_utc,
                 latitude=data[1],
-                latitude_ind="N",
+                latitude_ind="",
                 longitude=data[2],
-                longitude_ind="E",
+                longitude_ind="",
+                from_lbs=True,
             )
 
     def get_distance_to(self, position: Tuple[float, float]) -> float:
