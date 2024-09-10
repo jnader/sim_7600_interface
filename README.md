@@ -46,6 +46,37 @@ if board.is_open:
     board.close()
 ```
 
+- To know if the GPS module is inside or outside the zone, you need to do the following:
+```
+from gps import Sim7600Module
+from coordinates import Coordinates
+from zone import Zone
+
+board = Sim7600Module()
+zone = Zone(
+    os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        "Blue_Line/Export_Output.shp",
+    )
+)
+ret = zone.read()
+if ret:
+    print("Zone read successfully")
+
+# Load GPS module
+board.open()
+if board.is_open:
+    gps_module_position_epsg_4326: Coordinates
+    gps_module_position_epsg_4326 = board.get_gps_position()
+    gps_module_position_epsg_zone = gps_module_position_epsg_4326.to_crs(
+        zone.zone_expanded.crs.to_epsg()
+    )
+
+    print(zone.contains(gps_module_position_epsg_zone))
+
+    board.close()
+```
+
 # Example
 - To get GPS position once in an example, use the following example:
 ```
