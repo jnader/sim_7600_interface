@@ -47,7 +47,7 @@ class Coordinates:
         self.longitude = longitude
         self.longitude_indicator = longitude_ind
         self.crs_from = CRS.from_epsg(4326)
-        self.from_lbs = False
+        self.from_lbs = from_lbs
         if not self.from_lbs:
             self.nmea_to_coordinates()
 
