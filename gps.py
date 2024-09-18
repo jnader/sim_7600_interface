@@ -52,16 +52,6 @@ class Sim7600Module:
 
             else:
                 return [False, ""]
-        #     if pattern in rec_buff.decode():
-        #             break
-        #     except Exception as e:
-        #         print(pattern, e)
-        # if rec_buff != "":
-        #     if pattern not in rec_buff.decode():
-        #         return [False, rec_buff.decode()]
-        #     else:
-        #         return [True, rec_buff.decode()]
-        # return [False, rec_buff]
 
     def ping(self) -> bool:
         """Ping to check if the module is reachable by sending `AT`.
