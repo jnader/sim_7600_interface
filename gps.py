@@ -26,38 +26,42 @@ class Sim7600Module:
         self.is_open = False
         self.echo_enabled = True
 
-    def send_at(self, command: str) -> Tuple[bool, str]:
+    def send_at(self, command: str, back: str, timeout: int) -> Tuple[bool, str]:
         """Send command as AT command.
 
         Args:
-                command (str): AT command
+                command (str): AT command.
+                back (str): AT command return pattern check.
+                timeout (int): timeout delay.
 
-        Returns:
+        Returns Tuple[bool, str]:
                 bool: True if received OK as response, False otherwise
+                str: Received buffer
         """
-
-        command_sliced = command.split("+")
-        pattern = ""
-        if len(command_sliced) > 1:
-            pattern = command_sliced[-1].split("=")[0]
-
         rec_buff = ""
         self.serial.write((command + "\r\n").encode())
-        timeout = time.time() + 3.0
-        while self.serial.in_waiting or time.time() - timeout < 0.0:
-            if self.serial.in_waiting > 0:
-                try:
-                    rec_buff = self.serial.read(self.serial.in_waiting)
-                    if pattern in rec_buff.decode():
-                        break
-                except Exception as e:
-                    print(pattern, e)
-        if rec_buff != "":
-            if pattern not in rec_buff.decode():
-                return [False, rec_buff.decode()]
+        time.sleep(timeout)
+        if self.serial.in_waiting:
+            time.sleep(0.01)
+            rec_buff = self.serial.read(self.serial.in_waiting)
+            if rec_buff != "":
+                if back not in rec_buff.decode():
+                    return [False, ""]
+                else:
+                    return [True, rec_buff.decode()]
+
             else:
-                return [True, rec_buff.decode()]
-        return [False, rec_buff]
+                return [False, ""]
+        #     if pattern in rec_buff.decode():
+        #             break
+        #     except Exception as e:
+        #         print(pattern, e)
+        # if rec_buff != "":
+        #     if pattern not in rec_buff.decode():
+        #         return [False, rec_buff.decode()]
+        #     else:
+        #         return [True, rec_buff.decode()]
+        # return [False, rec_buff]
 
     def ping(self) -> bool:
         """Ping to check if the module is reachable by sending `AT`.
@@ -65,7 +69,7 @@ class Sim7600Module:
         Returns:
             bool: True if `OK` received, False otherwise
         """
-        return self.send_at("AT")[0]
+        return self.send_at("AT", "OK", 1)[0]
 
     def open(self) -> None:
         """Open serial communication"""
@@ -97,7 +101,7 @@ class Sim7600Module:
         response = [False, None]
         counter = 0
         while counter < 2:
-            response = self.send_at("AT+CGPSINFO")
+            response = self.send_at("AT+CGPSINFO", "+CGPSINFO: ", 1)
             if response[0]:
                 if ",,,,,,,," in response[1]:
                     return self.get_position_from_lbs()
@@ -128,7 +132,7 @@ class Sim7600Module:
         Returns:
             Coordinates: Coordinates of the base station.
         """
-        ret, response = self.send_at("AT+CLBS=4")
+        ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 1)
         if ret and "CLBS" in response:
             data_str = response.split("+CLBS: ")[1]
             data = data_str.split(",")
@@ -147,12 +151,16 @@ class Sim7600Module:
                 from_lbs=True,
             )
 
+    def reset_module(self):
+        """Reset the module in case ERROR occurs."""
+        self.send_at("AT+CRESET", "", 1)
+
     def enable_echo(self):
         """Enables echo on the board. This will enable echoing the result of AT commands."""
         if self.echo_enabled:
             print("echo already enabled...")
         else:
-            self.send_at("ATE")
+            self.send_at("ATE", "", 1)
 
 
 if __name__ == "__main__":
