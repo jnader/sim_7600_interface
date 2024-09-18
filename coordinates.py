@@ -20,7 +20,7 @@ class Coordinates:
     longitude_indicator: str = None
     crs_from = None
     from_lbs: bool = False
-    uncertainty: int = 10 # Uncertainty in meters
+    uncertainty: int = 10  # Uncertainty in meters
 
     def __init__(
         self,
@@ -92,5 +92,5 @@ class Coordinates:
         Special print() function for Coordinates class
         """
         if self.latitude_indicator != "" and self.longitude_indicator != "":
-            return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}, Long: {self.longitude}{self.longitude_indicator}"
-        return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°"
+            return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}, Long: {self.longitude}{self.longitude_indicator}, Uncertainty: {self.uncertainty}"
+        return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}"
