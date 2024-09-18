@@ -50,6 +50,7 @@ class Coordinates:
         self.longitude = longitude
         self.longitude_indicator = longitude_ind
         self.crs_from = CRS.from_epsg(4326)
+        self.uncertainty = uncertainty
         self.from_lbs = from_lbs
         if not self.from_lbs:
             self.nmea_to_coordinates()
@@ -92,5 +93,5 @@ class Coordinates:
         Special print() function for Coordinates class
         """
         if self.latitude_indicator != "" and self.longitude_indicator != "":
-            return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}, Long: {self.longitude}{self.longitude_indicator}, Uncertainty: {self.uncertainty}"
-        return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}"
+            return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}°, Long: {self.longitude}{self.longitude_indicator}°, Uncertainty: {self.uncertainty}m"
+        return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}m"

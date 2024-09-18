@@ -136,21 +136,24 @@ class Sim7600Module:
         if ret and "CLBS" in response:
             data_str = response.split("+CLBS: ")[1]
             data = data_str.split(",")
-            time_utc = (
-                "_".join(data[-2:])
-                .replace("/", "_")
-                .replace("\r", "")
-                .replace("\n", "")
-            )
-            return Coordinates(
-                time_utc=time_utc,
-                latitude=data[1],
-                latitude_ind="",
-                longitude=data[2],
-                longitude_ind="",
-                from_lbs=True,
-                uncertainty=int(data[3])
-            )
+            if len(data) > 1:
+                time_utc = (
+                    "_".join(data[-2:])
+                    .replace("/", "_")
+                    .replace("\r", "")
+                    .replace("\n", "")
+                )
+                return Coordinates(
+                    time_utc=time_utc,
+                    latitude=data[1],
+                    latitude_ind="",
+                    longitude=data[2],
+                    longitude_ind="",
+                    from_lbs=True,
+                    uncertainty=int(data[3])
+                )
+            else:
+                return None
 
     def reset_module(self):
         """Reset the module in case ERROR occurs."""
