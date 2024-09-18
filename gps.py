@@ -149,6 +149,7 @@ class Sim7600Module:
                 longitude=data[2],
                 longitude_ind="",
                 from_lbs=True,
+                uncertainty=int(data[3])
             )
 
     def reset_module(self):

@@ -20,6 +20,7 @@ class Coordinates:
     longitude_indicator: str = None
     crs_from = None
     from_lbs: bool = False
+    uncertainty: int = 10 # Uncertainty in meters
 
     def __init__(
         self,
@@ -29,6 +30,7 @@ class Coordinates:
         longitude: float,
         longitude_ind: str,
         from_lbs: bool = False,
+        uncertainty: int = 10,
     ):
         """Constructor
 
@@ -39,6 +41,7 @@ class Coordinates:
             longitude (float): Longitude of point
             longitude_ind (str): Longitude indicator E/W
             from_lbs (bool): Boolean to select if lat/long are specified in NMEA format
+            uncertainty (int): Uncertainty on the position in meters (default is 10 meters)
         """
         # WGS84 Coordinate Reference System
         self.time_utc = time_utc
@@ -68,12 +71,11 @@ class Coordinates:
         self.latitude += minute_to_degree(latitude_minutes)
         self.longitude += minute_to_degree(longitude_minutes)
 
-    def to_crs(self, crs_to: CRS, error: int = 10) -> gpd.GeoDataFrame:
+    def to_crs(self, crs_to: CRS) -> gpd.GeoDataFrame:
         """Reproject current point to given Coordinate Reference System (CRS).
 
         Args:
             crs_to (CRS): Coordinate Reference System to project to.
-            error (int): Error around the point to expand with.
 
         Returns:
             GeoDataFrame: Dataframe containing the new point
@@ -83,7 +85,7 @@ class Coordinates:
         gps_point = Point(transformer.transform(self.latitude, self.longitude))
 
         d = {"time_utc": [self.time_utc], "geometry": [gps_point]}
-        return gpd.GeoDataFrame(d, crs=crs_to).buffer(error)
+        return gpd.GeoDataFrame(d, crs=crs_to).buffer(self.uncertainty)
 
     def __str__(self):
         """
