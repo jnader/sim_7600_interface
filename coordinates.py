@@ -93,5 +93,5 @@ class Coordinates:
         Special print() function for Coordinates class
         """
         if self.latitude_indicator != "" and self.longitude_indicator != "":
-            return f"Time: {self.time_utc}, Lat: {self.latitude}{self.latitude_indicator}°, Long: {self.longitude}{self.longitude_indicator}°, Uncertainty: {self.uncertainty}m"
+            return f"Time: {self.time_utc}, Lat: {self.latitude}°{self.latitude_indicator}, Long: {self.longitude}°{self.longitude_indicator}, Uncertainty: {self.uncertainty}m"
         return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}m"
