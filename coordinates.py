@@ -60,11 +60,11 @@ class Coordinates:
         Latitude NMEA format: ddmm.mmmmmm
         Longitude NMEA format: dddmm.mmmm
         """
-        latitude_nmea = self.latitude
-        longitude_nmea = self.longitude
+        latitude_nmea = float(self.latitude)
+        longitude_nmea = float(self.longitude)
 
-        latitude_deg = latitude_nmea // 100
-        longitude_deg = longitude_nmea // 100
+        self.latitude = latitude_nmea // 100
+        self.longitude = longitude_nmea // 100
 
         latitude_minutes = latitude_nmea % 100
         longitude_minutes = longitude_nmea % 100
