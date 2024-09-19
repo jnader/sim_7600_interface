@@ -14,7 +14,7 @@ if __name__ == "__main__":
                 data = board.get_gps_position()
                 if data is not None:
                     print(data)
-                time.sleep(3)
+                time.sleep(1)
 
         board.close()
 
