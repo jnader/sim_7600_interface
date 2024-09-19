@@ -52,6 +52,8 @@ class Sim7600Module:
 
             else:
                 return [False, ""]
+        else:
+            return [False, ""]
 
     def ping(self) -> bool:
         """Ping to check if the module is reachable by sending `AT`.
@@ -91,8 +93,8 @@ class Sim7600Module:
         response = [False, None]
         counter = 0
         while counter < 2:
-            response = self.send_at("AT+CGPSINFO", "+CGPSINFO: ", 1)
-            if response[0]:
+            response = self.send_at("AT+CGPSINFO", "+CGPSINFO: ", 0.5)
+            if response and response[0]:
                 if ",,,,,,,," in response[1]:
                     return self.get_position_from_lbs()
                 else:
@@ -122,7 +124,7 @@ class Sim7600Module:
         Returns:
             Coordinates: Coordinates of the base station.
         """
-        ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 1)
+        ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 0.5)
         if ret and "CLBS" in response:
             data_str = response.split("+CLBS: ")[1]
             data = data_str.split(",")
