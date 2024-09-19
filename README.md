@@ -32,6 +32,13 @@ To counter this error, do:
 OPENBLAS_CORETYPE=ARMV8 python3 -c "import numpy"
 ```
 
+- If `get_gps_position()` returns `None`, this implies that the serial communication
+is not working correctly. What you can do is the following:
+```
+sudo lsof /dev/ttyUSB2
+sudo killall -9 <name_of_process_using_port_selected_above>
+```
+
 # Usage
 - To get only one gps position, the following code should be ran:
 ```
