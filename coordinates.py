@@ -11,6 +11,19 @@ from utils import minute_to_degree
 class Coordinates:
     """Basic class for storing lat/long GPS coordinates in EPSG-4326 CRS
     and reptojecting to different EPSG formats.
+
+    A `gps_status` is provided to define if:
+
+        - GPS signal is good (gps_status = 2). Usually this is when the module
+    is outdoor with good satellite coverage.
+
+        - GPS signal is medium (gps_status = 1). This is when LBS positioning
+    is used. The uncertainty on the position in this case is usually bigger,
+    since the positioning is defined by the telecom towers to which the SIM
+    card is connected.
+
+        - GPS signal is not usable (gps_status = 0, default). This is the case where
+    the module is indoor and SIM card not registered on the network.
     """
 
     time_utc: str = None  # TODO: Use time.
@@ -21,6 +34,7 @@ class Coordinates:
     crs_from = None
     from_lbs: bool = False
     uncertainty: int = 50  # Uncertainty in meters (default for SIM7600: `AT+CGPSHOR?`)
+    gps_status: int = 0  # An indicator for GPS accuracy.
 
     def __init__(
         self,
@@ -29,6 +43,7 @@ class Coordinates:
         latitude_ind: str,
         longitude: float,
         longitude_ind: str,
+        gps_status: int,
         from_lbs: bool = False,
         uncertainty: int = 50,
     ):
@@ -40,6 +55,7 @@ class Coordinates:
             latitude_ind (str): Latitude indicator: N/S
             longitude (float): Longitude of point
             longitude_ind (str): Longitude indicator E/W
+            gps_status (int): Indicator for GPS accuracy
             from_lbs (bool): Boolean to select if lat/long are specified in NMEA format
             uncertainty (int): Uncertainty on the position in meters (default is 10 meters)
         """
@@ -50,6 +66,7 @@ class Coordinates:
         self.longitude = longitude
         self.longitude_indicator = longitude_ind
         self.crs_from = CRS.from_epsg(4326)
+        self.gps_status = gps_status
         self.uncertainty = uncertainty
         self.from_lbs = from_lbs
         if not self.from_lbs:
@@ -93,5 +110,5 @@ class Coordinates:
         Special print() function for Coordinates class
         """
         if self.latitude_indicator != "" and self.longitude_indicator != "":
-            return f"Time: {self.time_utc}, Lat: {self.latitude}°{self.latitude_indicator}, Long: {self.longitude}°{self.longitude_indicator}, Uncertainty: {self.uncertainty}m"
-        return f"Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}m"
+            return f"Status: {self.gps_status}, Time: {self.time_utc}, Lat: {self.latitude}°{self.latitude_indicator}, Long: {self.longitude}°{self.longitude_indicator}, Uncertainty: {self.uncertainty}m"
+        return f"Status: {self.gps_status}, Time: {self.time_utc}, Lat: {self.latitude}°, Long: {self.longitude}°, Uncertainty: {self.uncertainty}m"

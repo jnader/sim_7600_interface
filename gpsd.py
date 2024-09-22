@@ -12,7 +12,7 @@ if __name__ == "__main__":
             while 1:
                 data: Coordinates
                 data = board.get_gps_position()
-                print(f"GPS status: {board.gps_status},", data)
+                print(data)
                 time.sleep(1)
 
         board.close()

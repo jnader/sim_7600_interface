@@ -19,19 +19,6 @@ class Sim7600Module:
     If GPS signal is weak, the class tries to get Location Based
     Services (LBS) position information.
 
-    A `gps_status` is provided to define if:
-
-        - GPS signal is good (gps_status = 2). Usually this is when the module
-    is outdoor with good satellite coverage.
-
-        - GPS signal is medium (gps_status = 1). This is when LBS positioning
-    is used. The uncertainty on the position in this case is usually bigger,
-    since the positioning is defined by the telecom towers to which the SIM
-    card is connected.
-
-        - GPS signal is not usable (gps_status = 0). This is the case where
-    the module is indoor and SIM card not registered on the network.
-
     `get_gps_position()` function returns the current position of the module:
 
         - The call tries to get GPS position (2 retries maximum).
@@ -51,7 +38,6 @@ class Sim7600Module:
         self.serial = None
         self.is_open = False
         self.echo_enabled = True
-        self.gps_status = 0
 
     def send_at(self, command: str, back: str, timeout: int) -> Tuple[bool, str]:
         """Send command as AT command.
@@ -134,13 +120,13 @@ class Sim7600Module:
         if response[0] and "CGPSINFO" in response[1]:
             data_str = response[1].split("+CGPSINFO: ")[1]
             data = data_str.split(",")
-            self.gps_status = 2
             return Coordinates(
                 time_utc="_".join(data[4:6]),
                 latitude=data[0],
                 latitude_ind=data[1],
                 longitude=data[2],
                 longitude_ind=data[3],
+                gps_status=2,
             )
         return None
 
@@ -163,7 +149,6 @@ class Sim7600Module:
                     .replace("\r", "")
                     .replace("\n", "")
                 )
-                self.gps_status = 1
                 return Coordinates(
                     time_utc=time_utc,
                     latitude=data[1],
@@ -171,14 +156,11 @@ class Sim7600Module:
                     longitude=data[2],
                     longitude_ind="",
                     from_lbs=True,
-                    uncertainty=int(data[3])
+                    uncertainty=int(data[3]),
+                    gps_status=1
                 )
             else:
-                self.gps_status = 0
                 return None
-
-        else:
-            self.gps_status = 0
 
     def reset_module(self):
         """Reset the module in case ERROR occurs."""
@@ -200,7 +182,7 @@ if __name__ == "__main__":
         if board.is_open:
             gps_data: Coordinates
             gps_data = board.get_gps_position()
-            print(f"GPS status: {board.gps_status},", gps_data)
+            print(gps_data)
 
             board.close()
 
