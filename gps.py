@@ -177,6 +177,9 @@ class Sim7600Module:
                 self.gps_status = 0
                 return None
 
+        else:
+            self.gps_status = 0
+
     def reset_module(self):
         """Reset the module in case ERROR occurs."""
         self.send_at("AT+CRESET", "", 1)
