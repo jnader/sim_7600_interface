@@ -22,12 +22,12 @@ class Zone:
     zone_expanded = None
     zone_radius: int = None
 
-    def __init__(self, shapefile: str, zone_radius: int = 50):
+    def __init__(self, shapefile: str, zone_radius: int = 1):
         """Constructor
 
         Args:
             shapefile (str): Path to shapefile .shp file.
-            zone_radius (int, optional): Radius of the zone in meteres. Defaults to 50.
+            zone_radius (int, optional): Radius of the zone in meteres. Defaults to 1m.
         """
         if "shp" not in os.path.splitext(shapefile)[1]:
             print("Only .shp file are supported")
@@ -36,6 +36,8 @@ class Zone:
 
         if not os.path.exists(self.shapefile_path):
             print("File not found...")
+
+        self.zone_radius = zone_radius
 
     def read(self) -> bool:
         """Reads the shapefile provided in the constructor.
@@ -47,7 +49,7 @@ class Zone:
         if self.zone_dataframe is not None:
             # expand
             self.zone_exploded = self.zone_dataframe.explode()["geometry"]
-            self.zone_expanded = self.zone_exploded.buffer(50)
+            self.zone_expanded = self.zone_exploded.buffer(self.zone_radius)
 
             return True
 
