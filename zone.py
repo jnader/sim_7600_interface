@@ -60,7 +60,7 @@ class Zone:
             map.save("/tmp/map.html")
             webbrowser.open("/tmp/map.html")
 
-    def contains(self, data_frame: gpd.GeoDataFrame) -> bool:
+    def intersects(self, data_frame: gpd.GeoDataFrame) -> bool:
         """Test to check if data_frame is contained in zone.
         This will check if any point in data_frame is present
         inside the zone
@@ -71,7 +71,7 @@ class Zone:
         Returns:
             bool: True if data_frame contained in zone, False otherwise
         """
-        return self.zone_dataframe.contains(data_frame).any()
+        return self.zone_dataframe.intersects(data_frame).any()
 
 
 # if __name__ == "__main__":

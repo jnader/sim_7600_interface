@@ -35,7 +35,7 @@ if __name__ == "__main__":
                 zone.zone_expanded.crs.to_epsg()
             )
 
-            in_out_zone(zone.contains(gps_module_position_epsg_zone))
+            in_out_zone(zone.intersects(gps_module_position_epsg_zone))
 
             board.close()
 
