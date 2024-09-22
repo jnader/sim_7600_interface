@@ -33,19 +33,19 @@ class Coordinates:
     longitude_indicator: str = None
     crs_from = None
     from_lbs: bool = False
-    uncertainty: int = 50  # Uncertainty in meters (default for SIM7600: `AT+CGPSHOR?`)
+    uncertainty: int = 1000  # Uncertainty in meters (default for SIM7600: `AT+CGPSHOR?`)
     gps_status: int = 0  # An indicator for GPS accuracy.
 
     def __init__(
         self,
-        time_utc: str,
-        latitude: float,
-        latitude_ind: str,
-        longitude: float,
-        longitude_ind: str,
-        gps_status: int,
+        time_utc: str = None,
+        latitude: float = None,
+        latitude_ind: str = None,
+        longitude: float = None,
+        longitude_ind: str = None,
+        gps_status: int = None,
         from_lbs: bool = False,
-        uncertainty: int = 50,
+        uncertainty: int = 1000,
     ):
         """Constructor
 

@@ -160,7 +160,7 @@ class Sim7600Module:
                     gps_status=1
                 )
             else:
-                return None
+                return Coordinates(from_lbs=True)
 
     def reset_module(self):
         """Reset the module in case ERROR occurs."""
