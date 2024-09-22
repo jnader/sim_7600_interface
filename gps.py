@@ -152,7 +152,7 @@ class Sim7600Module:
         Returns:
             Coordinates: Coordinates of the base station.
         """
-        ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 0.2)
+        ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 0.6)
         if ret and "CLBS" in response:
             data_str = response.split("+CLBS: ")[1]
             data = data_str.split(",")
