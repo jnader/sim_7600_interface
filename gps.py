@@ -197,7 +197,7 @@ if __name__ == "__main__":
         if board.is_open:
             gps_data: Coordinates
             gps_data = board.get_gps_position()
-            print(board.gps_status, gps_data)
+            print(f"GPS status: {board.gps_status},", gps_data)
 
             board.close()
 
