@@ -20,7 +20,7 @@ class Coordinates:
     longitude_indicator: str = None
     crs_from = None
     from_lbs: bool = False
-    uncertainty: int = 10  # Uncertainty in meters
+    uncertainty: int = 50  # Uncertainty in meters (default for SIM7600: `AT+CGPSHOR?`)
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class Coordinates:
         longitude: float,
         longitude_ind: str,
         from_lbs: bool = False,
-        uncertainty: int = 10,
+        uncertainty: int = 50,
     ):
         """Constructor
 
