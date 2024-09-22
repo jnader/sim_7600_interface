@@ -12,8 +12,7 @@ if __name__ == "__main__":
             while 1:
                 data: Coordinates
                 data = board.get_gps_position()
-                if data is not None:
-                    print(data)
+                print(board.gps_status, data)
                 time.sleep(1)
 
         board.close()

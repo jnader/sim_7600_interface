@@ -10,10 +10,36 @@ from typing import Tuple
 
 
 class Sim7600Module:
-    """Sim7600Module interface class."""
+    """Sim7600Module interface class.
+    This class is used to interface with SIM7600 Module, mainly
+    for getting GPS position through AT commands.
+    For that, this class will handle serial communication internally,
+    and exposes API calls to get GPS position.
+
+    If GPS signal is weak, the class tries to get Location Based
+    Services (LBS) position information.
+
+    A `gps_status` is provided to define if:
+
+        - GPS signal is good (gps_status = 2). Usually this is when the module
+    is outdoor with good satellite coverage.
+
+        - GPS signal is medium (gps_status = 1). This is when LBS positioning
+    is used. The uncertainty on the position in this case is usually bigger,
+    since the positioning is defined by the telecom towers to which the SIM
+    card is connected.
+
+        - GPS signal is not usable (gps_status = 0). This is the case where
+    the module is indoor and SIM card not registered on the network.
+
+    `get_gps_position()` function returns the current position of the module:
+
+        - The call tries to get GPS position (2 retries maximum).
+        - If the first step fails, it tries position from LBS.
+    """
 
     def __init__(self, address: Path = "/dev/ttyUSB2", baudrate: int = 115200):
-        """Constructor
+        """Constructor for interface with SIM7600 Module.
 
         Args:
             address (Path, optional): serial port. Defaults to "/dev/ttyUSB2".
@@ -25,6 +51,7 @@ class Sim7600Module:
         self.serial = None
         self.is_open = False
         self.echo_enabled = True
+        self.gps_status = 0
 
     def send_at(self, command: str, back: str, timeout: int) -> Tuple[bool, str]:
         """Send command as AT command.
@@ -107,6 +134,7 @@ class Sim7600Module:
         if response[0] and "CGPSINFO" in response[1]:
             data_str = response[1].split("+CGPSINFO: ")[1]
             data = data_str.split(",")
+            self.gps_status = 2
             return Coordinates(
                 time_utc="_".join(data[4:6]),
                 latitude=data[0],
@@ -135,6 +163,7 @@ class Sim7600Module:
                     .replace("\r", "")
                     .replace("\n", "")
                 )
+                self.gps_status = 1
                 return Coordinates(
                     time_utc=time_utc,
                     latitude=data[1],
@@ -145,6 +174,7 @@ class Sim7600Module:
                     uncertainty=int(data[3])
                 )
             else:
+                self.gps_status = 0
                 return None
 
     def reset_module(self):
@@ -167,7 +197,7 @@ if __name__ == "__main__":
         if board.is_open:
             gps_data: Coordinates
             gps_data = board.get_gps_position()
-            print(gps_data)
+            print(board.gps_status, gps_data)
 
             board.close()
 
