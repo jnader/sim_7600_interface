@@ -11,113 +11,118 @@ from typing import Tuple
 
 class Sim7600Module:
     """Sim7600Module interface class.
+
     This class is used to interface with SIM7600 Module, mainly
     for getting GPS position through AT commands.
-    For that, this class will handle serial communication internally,
-    and exposes API calls to get GPS position.
 
-    If GPS signal is weak, the class tries to get Location Based
-    Services (LBS) position information.
+    Serial communication is handled internally, with a configurable
+    timeout. If GPS signal is weak, falls back to Location Based
+    Services (LBS).
 
-    `get_gps_position()` function returns the current position of the module:
-
-        - The call tries to get GPS position (2 retries maximum).
-        - If the first step fails, it tries position from LBS.
+    `get_gps_position()` tries GPS up to 2 times, then falls back to LBS.
     """
 
-    def __init__(self, address: Path = "/dev/ttyUSB2", baudrate: int = 115200):
+    def __init__(self, address: str = "/dev/ttyUSB2", baudrate: int = 115200, timeout: int = 2):
         """Constructor for interface with SIM7600 Module.
 
         Args:
-            address (Path, optional): serial port. Defaults to "/dev/ttyUSB2".
-            baudrate (int, optional): baud rate. Defaults to 115200.
+            address (str): Serial port. Defaults to "/dev/ttyUSB2".
+            baudrate (int): Baud rate. Defaults to 115200.
+            timeout (int): Serial read timeout in seconds. Defaults to 2.
         """
         self.serial_port = address
         self.baud_rate = baudrate
-        self.reference_position = (None, None)
+        self.serial_timeout = timeout
         self.serial = None
         self.is_open = False
         self.echo_enabled = True
 
-    def send_at(self, command: str, back: str, timeout: int) -> Tuple[bool, str]:
-        """Send command as AT command.
+    def send_at(self, command: str, back: str, timeout: float) -> Tuple[bool, str]:
+        """Send an AT command and wait for a response.
 
         Args:
-                command (str): AT command.
-                back (str): AT command return pattern check.
-                timeout (int): timeout delay.
-
-        Returns Tuple[bool, str]:
-                bool: True if received OK as response, False otherwise
-                str: Received buffer
-        """
-        rec_buff = ""
-        self.serial.write((command + "\r\n").encode())
-        time.sleep(timeout)
-        if self.serial.in_waiting:
-            time.sleep(0.01)
-            rec_buff = self.serial.read(self.serial.in_waiting)
-            if rec_buff != "":
-                if back not in rec_buff.decode():
-                    return [False, ""]
-                else:
-                    return [True, rec_buff.decode()]
-
-            else:
-                return [False, ""]
-        else:
-            return [False, ""]
-
-    def ping(self) -> bool:
-        """Ping to check if the module is reachable by sending `AT`.
+            command (str): AT command to send.
+            back (str): Expected pattern in the response.
+            timeout (float): Time to wait for response in seconds.
 
         Returns:
-            bool: True if `OK` received, False otherwise
+            Tuple[bool, str]:
+                bool: True if expected pattern found in response, False otherwise.
+                str: Decoded response buffer, or empty string on failure.
+        """
+        self.serial.write((command + "\r\n").encode())
+        deadline = time.time() + timeout
+        rec_buff = b""
+        while time.time() < deadline:
+            rec_buff += self.serial.read(self.serial.in_waiting or 1)
+            if back.encode() in rec_buff or b"ERROR" in rec_buff:
+                break
+            time.sleep(0.01)
+
+        if rec_buff:
+            decoded = rec_buff.decode("utf-8", errors="replace")
+            if back not in decoded:
+                return (False, "")
+            return (True, decoded)
+        return (False, "")
+
+    def ping(self) -> bool:
+        """Ping the module by sending AT.
+
+        Returns:
+            bool: True if OK received, False otherwise.
         """
         return self.send_at("AT", "OK", 1)[0]
 
-    def open(self) -> None:
-        """Open serial communication"""
-        if not self.serial:
-            self.serial = serial.Serial(port=self.serial_port, baudrate=self.baud_rate)
+    def open(self) -> bool:
+        """Open serial communication.
+
+        Returns:
+            bool: True if port opened successfully, False otherwise.
+        """
+        try:
+            if not self.serial:
+                self.serial = serial.Serial(
+                    port=self.serial_port,
+                    baudrate=self.baud_rate,
+                    timeout=self.serial_timeout,
+                )
+            elif not self.serial.is_open:
+                self.serial.open()
             self.is_open = self.serial.is_open
             self.serial.reset_input_buffer()
             self.serial.reset_output_buffer()
-        else:
-            if self.serial.is_open:
-                self.serial.close()
-                self.serial.open()
+            return self.is_open
+        except serial.SerialException as e:
+            print(f"Failed to open serial port {self.serial_port}: {e}")
+            self.is_open = False
+            return False
 
     def close(self) -> None:
-        """Close serial port.
-
-        Returns:
-            bool: True if disconnect succeeded, False otherwise
-        """
-        if self.serial.is_open:
+        """Close the serial port."""
+        if self.serial and self.serial.is_open:
             self.serial.close()
+            self.is_open = False
 
     def get_gps_position(self) -> Coordinates:
-        """Get GPS (latitude, longitude positions) by sending `AT+CGPSINFO`
+        """Get GPS position by sending AT+CGPSINFO.
+
+        Retries up to 2 times for both comm failure and no-fix.
+        Falls back to LBS if GPS is unavailable.
 
         Returns:
-            Coordinates: (time_utc, latitude, longitude)
+            Coordinates: Current position, or None on total failure.
         """
-        response = [False, None]
-        counter = 0
-        while counter < 2:
-            response = self.send_at("AT+CGPSINFO", "+CGPSINFO: ", 0.2)
-            if response and response[0]:
-                if ",,,,,,,," in response[1]:
-                    return self.get_position_from_lbs()
-                else:
-                    break
-            counter += 1
+        response = (False, "")
 
-        if counter == 2:
+        for _ in range(2):
+            response = self.send_at("AT+CGPSINFO", "+CGPSINFO: ", 0.2)
+            if response[0] and ",,,,,,,," not in response[1]:
+                break  # Got a valid fix
+        else:
             return self.get_position_from_lbs()
 
-        if response[0] and "CGPSINFO" in response[1]:
+        if "CGPSINFO" in response[1]:
             data_str = response[1].split("+CGPSINFO: ")[1]
             data = data_str.split(",")
             return Coordinates(
@@ -128,27 +133,32 @@ class Sim7600Module:
                 longitude_ind=data[3],
                 gps_status=2,
             )
+
         return None
 
     def get_position_from_lbs(self) -> Coordinates:
-        """Gets position using Location-Based-Services (LBS).
-        The position tends to have less accuracy than GPS, ranging
-        from hundreds of meters to kilometers.
+        """Get position using Location-Based Services (LBS).
+
+        Less accurate than GPS (hundreds of metres to kilometres).
 
         Returns:
-            Coordinates: Coordinates of the base station.
+            Coordinates: Position from base station, or empty Coordinates on failure.
         """
         ret, response = self.send_at("AT+CLBS=4", "+CLBS: ", 0.6)
         if ret and "CLBS" in response:
             data_str = response.split("+CLBS: ")[1]
             data = data_str.split(",")
-            if len(data) > 1:
+            if len(data) > 3:
                 time_utc = (
                     "_".join(data[-2:])
                     .replace("/", "_")
-                    .replace("\r", "")
-                    .replace("\n", "")
+                    .strip()
                 )
+                try:
+                    uncertainty = int(data[3].strip())
+                except ValueError:
+                    uncertainty = 1000
+
                 return Coordinates(
                     time_utc=time_utc,
                     latitude=data[1],
@@ -156,22 +166,31 @@ class Sim7600Module:
                     longitude=data[2],
                     longitude_ind="",
                     from_lbs=True,
-                    uncertainty=int(data[3]),
-                    gps_status=1
+                    uncertainty=uncertainty,
+                    gps_status=1,
                 )
-            else:
-                return Coordinates(from_lbs=True)
 
-    def reset_module(self):
+        return Coordinates(from_lbs=True)
+
+    def reset_module(self) -> None:
         """Reset the module in case ERROR occurs."""
-        self.send_at("AT+CRESET", "", 1)
+        self.send_at("AT+CRESET", "OK", 1)
 
-    def enable_echo(self):
-        """Enables echo on the board. This will enable echoing the result of AT commands."""
-        if self.echo_enabled:
-            print("echo already enabled...")
+    def enable_echo(self) -> None:
+        """Enable AT command echo on the module."""
+        if not self.echo_enabled:
+            self.send_at("ATE1", "OK", 1)
+            self.echo_enabled = True
         else:
-            self.send_at("ATE", "", 1)
+            print("Echo already enabled.")
+
+    def disable_echo(self) -> None:
+        """Disable AT command echo on the module."""
+        if self.echo_enabled:
+            self.send_at("ATE0", "OK", 1)
+            self.echo_enabled = False
+        else:
+            print("Echo already disabled.")
 
 
 if __name__ == "__main__":
@@ -180,13 +199,10 @@ if __name__ == "__main__":
         board = Sim7600Module()
         board.open()
         if board.is_open:
-            gps_data: Coordinates
             gps_data = board.get_gps_position()
             print(gps_data)
-
-            board.close()
-
-    except KeyboardInterrupt as e:
-        if board and board.is_open:
-            print("\nClosing serial communication.")
+    except KeyboardInterrupt:
+        print("\nInterrupted.")
+    finally:
+        if board:
             board.close()

@@ -1,6 +1,5 @@
 """
 This file contains GIS-related classes and functions.
-TODO: Use logger
 """
 
 import os
@@ -9,74 +8,64 @@ import webbrowser
 
 
 class Zone:
-    """
-    Class abstracting a zone.
-    It should be read from a shapefile (.shp) file.
-    Currently, the only supported file format is .shp.
-    I am not sure if other AutoCAD exported files can be supported.
-    """
+    """Class abstracting a geographic zone loaded from a shapefile.
 
-    shapefile_path: str = None
-    zone_dataframe: gpd.GeoDataFrame = None
-    zone_exploded = None
-    zone_expanded = None
-    zone_radius: int = None
+    Currently only .shp format is supported.
+    """
 
     def __init__(self, shapefile: str, zone_radius: int = 1):
-        """Constructor
+        """Constructor.
 
         Args:
             shapefile (str): Path to shapefile .shp file.
-            zone_radius (int, optional): Radius of the zone in meteres. Defaults to 1m.
+            zone_radius (int, optional): Buffer radius in metres. Defaults to 1.
+
+        Raises:
+            ValueError: If the file is not a .shp file.
+            FileNotFoundError: If the file does not exist.
         """
-        if "shp" not in os.path.splitext(shapefile)[1]:
-            print("Only .shp file are supported")
+        if os.path.splitext(shapefile)[1] != ".shp":
+            raise ValueError(f"Only .shp files are supported, got: {shapefile}")
+        if not os.path.exists(shapefile):
+            raise FileNotFoundError(f"Shapefile not found: {shapefile}")
 
         self.shapefile_path = shapefile
-
-        if not os.path.exists(self.shapefile_path):
-            print("File not found...")
-
         self.zone_radius = zone_radius
+        self.zone_dataframe: gpd.GeoDataFrame = None
+        self.zone_exploded = None
+        self.zone_expanded = None
 
     def read(self) -> bool:
         """Reads the shapefile provided in the constructor.
 
         Returns:
-            bool: True if success, False otherwise
+            bool: True if success, False otherwise.
         """
-        self.zone_dataframe = gpd.read_file(self.shapefile_path)
-        if self.zone_dataframe is not None:
-            # expand
+        try:
+            self.zone_dataframe = gpd.read_file(self.shapefile_path)
             self.zone_exploded = self.zone_dataframe.explode()["geometry"]
             self.zone_expanded = self.zone_exploded.buffer(self.zone_radius)
-
             return True
-
-        return False
+        except Exception as e:
+            print(f"Failed to read shapefile: {e}")
+            return False
 
     def explore(self) -> None:
-        """Show zone on an interactive map"""
-        if self.zone_dataframe is not None:
-            map = self.zone_expanded.explore()
-            map.save("/tmp/map.html")
+        """Show zone on an interactive map."""
+        if self.zone_expanded is not None:
+            map_ = self.zone_expanded.explore()
+            map_.save("/tmp/map.html")
             webbrowser.open("/tmp/map.html")
 
     def intersects(self, data_frame: gpd.GeoDataFrame) -> bool:
-        """Test to check if data_frame is contained in zone.
-        This will check if any point in data_frame is present
-        inside the zone
+        """Test whether data_frame intersects the expanded zone.
 
         Args:
             data_frame (gpd.GeoDataFrame): GeoDataFrame to test.
 
         Returns:
-            bool: True if data_frame contained in zone, False otherwise
+            bool: True if data_frame intersects the zone, False otherwise.
         """
-        return self.zone_dataframe.intersects(data_frame).any()
-
-
-# if __name__ == "__main__":
-#     zone = Zone("<.shp file>")
-
-#     ret = zone.read()
+        if self.zone_expanded is None:
+            raise RuntimeError("Zone not loaded. Call read() first.")
+        return self.zone_expanded.intersects(data_frame).any()
